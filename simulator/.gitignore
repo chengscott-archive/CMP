@@ -1,0 +1,6 @@
+makefile.test
+# output
+CMP
+*.bin
+*.rpt
+*.o
