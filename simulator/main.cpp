@@ -1,8 +1,9 @@
 #include "main.hpp"
-// for demo
-int main() {
+
+int main(int argc, char** argv) {
     snapshot = fopen("snapshot.rpt", "w");
-    error_dump = fopen("report.rpt", "w");
+    report = fopen("report.rpt", "w");
+    mem.Init(argc, argv);
     mem.LoadInstr();
     uint32_t SP = mem.LoadData();
     reg.setReg(29, SP);
@@ -19,31 +20,13 @@ int main() {
                 printf("illegal instruction found at 0x%08X\n", mem.getPC());
                 break;
             }
-        } catch (uint32_t ex) {
-            // dump error
-            if (ex & ERR_WRITE_REG_ZERO) {
-                fprintf(error_dump, "In cycle %zu: Write $0 Error\n", cycle);
-            }
-            if (ex & ERR_NUMBER_OVERFLOW) {
-                fprintf(error_dump, "In cycle %zu: Number Overflow\n", cycle);
-            }
-            if (ex & ERR_OVERWRTIE_REG_HI_LO) {
-                fprintf(error_dump,
-                        "In cycle %zu: Overwrite HI-LO registers\n",
-                        cycle);
-            }
-            if (ex & ERR_ADDRESS_OVERFLOW) {
-                fprintf(error_dump, "In cycle %zu: Address Overflow\n", cycle);
-            }
-            if (ex & ERR_MISALIGNMENT) {
-                fprintf(error_dump, "In cycle %zu: Misalignment Error\n", cycle);
-            }
-            if (ex & HALT) break;
+        } catch (uint32_t error) {
+            // need not handle
         }
         dump_reg(cycle);
     }
     fclose(snapshot);
-    fclose(error_dump);
+    fclose(report);
     return 0;
 }
 
@@ -160,27 +143,18 @@ void I_execute(const uint32_t rhs) {
                 isOverflow(rs, Cext + 1, res) |
                 isOverflow(rs, Cext + 2, res) |
                 isOverflow(rs, Cext + 3, res));
-        err |= (res >= 1024 || res + 1 >= 1024 ||
-                res + 2 >= 1024 || res + 3 >= 1024 ? ERR_ADDRESS_OVERFLOW : 0);
-        err |= (res % 4 != 0 ? ERR_MISALIGNMENT : 0);
-        if (err & HALT) throw err;
         mem.saveWord(res, rt);
     } else if (opcode == 0x29) {
         // sh
         const int32_t Cext = SignExt16(C);
         res = int32_t(rs) + Cext;
         err |= (isOverflow(rs, Cext, res) | isOverflow(rs, Cext + 1, res));
-        err |= (res >= 1024 || res + 1 >= 1024 ? ERR_ADDRESS_OVERFLOW : 0);
-        err |= (res % 2 != 0 ? ERR_MISALIGNMENT : 0);
-        if (err & HALT) throw err;
         mem.saveHalfWord(res, rt);
     } else if (opcode == 0x28) {
         // sb
         const int32_t Cext = SignExt16(C);
         res = int32_t(rs) + Cext;
         err |= isOverflow(rs, Cext, res);
-        err |= (res >= 1024 ? ERR_ADDRESS_OVERFLOW : 0);
-        if (err & HALT) throw err;
         mem.saveByte(res, rt);
     } else {
         if (instr.rt == 0) err |= ERR_WRITE_REG_ZERO;
@@ -217,37 +191,22 @@ void I_execute(const uint32_t rhs) {
                         isOverflow(rs, Cext + 1, res) |
                         isOverflow(rs, Cext + 2, res) |
                         isOverflow(rs, Cext + 3, res));
-                err |= (res >= 1024 || res + 1 >= 1024 ||
-                        res + 2 >= 1024 || res + 3 >= 1024 ?
-                        ERR_ADDRESS_OVERFLOW : 0);
-                err |= (res % 4 != 0 ? ERR_MISALIGNMENT : 0);
-                if (err & HALT) throw err;
                 reg.setReg(instr.rt, mem.loadWord(res));
             } else if (opcode == 0x21) {
                 // lh
                 err |= (isOverflow(rs, Cext, res) | isOverflow(rs, Cext + 1, res));
-                err |= (res >= 1024 || res + 1 >= 1024 ? ERR_ADDRESS_OVERFLOW : 0);
-                err |= (res % 2 != 0 ? ERR_MISALIGNMENT : 0);
-                if (err & HALT) throw err;
                 reg.setReg(instr.rt, SignExt16(mem.loadHalfWord(res)));
             } else if (opcode == 0x25) {
                 // lhu
                 err |= (isOverflow(rs, Cext, res) | isOverflow(rs, Cext + 1, res));
-                err |= (res >= 1024 || res + 1 >= 1024 ? ERR_ADDRESS_OVERFLOW : 0);
-                err |= (res % 2 != 0 ? ERR_MISALIGNMENT : 0);
-                if (err & HALT) throw err;
                 reg.setReg(instr.rt, mem.loadHalfWord(res) & 0xffff);
             } else if (opcode == 0x20) {
                 // lb
                 err |= isOverflow(rs, Cext, res);
-                err |= (res >= 1024 ? ERR_ADDRESS_OVERFLOW : 0);
-                if (err & HALT) throw err;
                 reg.setReg(instr.rt, SignExt8(mem.loadByte(res)));
             } else if (opcode == 0x24) {
                 // lbu
                 err |= isOverflow(rs, Cext, res);
-                err |= (res >= 1024 ? ERR_ADDRESS_OVERFLOW : 0);
-                if (err & HALT) throw err;
                 reg.setReg(instr.rt, mem.loadByte(res) & 0xff);
             }
         }

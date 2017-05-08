@@ -6,9 +6,6 @@
 #define ERR_WRITE_REG_ZERO 0x1 // continue
 #define ERR_NUMBER_OVERFLOW 0x10  // continue
 #define ERR_OVERWRTIE_REG_HI_LO 0x100 // continue
-#define ERR_ADDRESS_OVERFLOW 0x1000 // halt
-#define ERR_MISALIGNMENT 0x10000 // halt
-#define HALT (ERR_ADDRESS_OVERFLOW | ERR_MISALIGNMENT) // halt code
 // 32-bit C sign extend to 64-bit
 #define SignExt32(C) (((C) >> 31 == 0x0) ?\
     ((C) & 0x00000000ffffffff) : ((C) | 0xffffffff00000000))
@@ -26,7 +23,7 @@
 
 memory mem;
 regfile reg, regt;
-FILE *snapshot, *error_dump;
+FILE *snapshot, *report;
 
 void dump_reg(const size_t);
 void R_execute(const uint32_t);
