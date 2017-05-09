@@ -57,60 +57,116 @@ void memory::HitMiss(const bool type, const uint32_t VA) {
     SizeInfo &size = type ? DSize_ : ISize_;
     Info &hit = type ? DHit_ : IHit_,
         &miss = type ? DMiss_ : IMiss_;
-    //PTE *pagetable = type ? DPageTable_ : IPageTable_;
+    PTE *pagetable = type ? DPageTable_ : IPageTable_;
     TLB_entry *TLB = type ? DTLB_ : ITLB_;
     Cache_entry (*cache)[1024] = type ? DCache_ : ICache_;
     uint32_t VPN = VA/size.page, PPN;
-    bool isTLBHit = false;
+    /* TLB Access */
+    bool isTLBMiss = true;
     for (size_t i = 0; i < size.TLB; ++i) {
         if (TLB[i].valid && TLB[i].VPN == VPN) {
             // TLB Hit
             ++hit.TLB;
             TLB[i].LRU = cycle_;
             PPN = TLB[i].PPN;
-            isTLBHit = true;
+            isTLBMiss = false;
             break;
         }
     }
-    if (!isTLBHit) {
+    if (isTLBMiss) {
         // TLB Miss
         ++miss.TLB;
     }
-    uint32_t PA = PPN * size.page + (VA % size.page),
+    /* Cache Access */
+    const uint32_t PA = PPN * size.page + (VA % size.page),
         index = (PA/size.cacheBlock) % size.cache,
         tag = PA/size.cacheBlock/size.cache;
-    bool isCacheHit = false;
+    CacheHitMiss(tag, cache[index], size.cacheNWay, hit, miss);
+}
+
+void memory::CacheHitMiss(const uint32_t tag, Cache_entry* cacheIndex,
+    const uint32_t cacheNWay, Info &hit, Info &miss
+) {
+    bool isCacheMiss = true;
     size_t MRU;
-    for (size_t i = 0; i < size.cacheNWay; ++i) {
-        if (cache[index][i].valid && cache[index][i].tag == tag) {
+    for (size_t i = 0; i < cacheNWay; ++i) {
+        if (cacheIndex[i].valid && cacheIndex[i].tag == tag) {
             // Cache Hit
             ++hit.Cache;
-            cache[index][i].MRU = true;
+            cacheIndex[i].MRU = true;
             MRU = i;
-            isCacheHit = true;
+            isCacheMiss = false;
             break;
         }
     }
-    // Cache MRU
-    bool isMRUfull = true;
-    for (size_t i = 0; i < size.cacheNWay && isMRUfull; ++i)
-        if (!cache[index][i].MRU)
-            isMRUfull = false;
-    if (isMRUfull) {
-        for (size_t i = 0; i < size.cacheNWay; ++i)
-            if (i != MRU)
-                cache[index][i].MRU = false;
-    }
-    if (!isCacheHit) {
+    if (isCacheMiss) {
         // Cache Miss
         ++miss.Cache;
-        // update cache
+        bool isInvalid = false, MRUfound = false;
+        size_t mru;
+        // find not valid
+        for (size_t i = 0; i < cacheNWay; ++i) {
+            if (!cacheIndex[i].valid) {
+                cacheIndex[i].tag = tag;
+                cacheIndex[i].valid = cacheIndex[i].MRU = true;
+                isInvalid = true;
+                break;
+            }
+            if (cacheIndex[i].MRU && !MRUfound) mru = i, MRUfound = true;
+        }
+        if (!isInvalid) {
+            // use MRU
+            cacheIndex[mru].tag = tag;
+            cacheIndex[mru].valid = cacheIndex[mru].MRU = true;
+        }
     }
+    // update MRU
+    bool isMRUfull = true;
+    for (size_t i = 0; i < cacheNWay && isMRUfull; ++i)
+        if (!cacheIndex[i].MRU)
+            isMRUfull = false;
+    if (isMRUfull) {
+        for (size_t i = 0; i < cacheNWay; ++i)
+            if (i != MRU)
+                cacheIndex[i].MRU = false;
+    }
+}
+
+void memory::DumpReport() const {
+    FILE *report = fopen("report.rpt", "w");
+    fprintf(report,
+        "ICache :\n"
+        "# hits: %u\n"
+        "# misses: %u\n\n"
+        "DCache :\n"
+        "# hits: %u\n"
+        "# misses: %u\n\n"
+        "ITLB :\n"
+        "# hits: %u\n"
+        "# misses: %u\n\n"
+        "DTLB :\n"
+        "# hits: %u\n"
+        "# misses: %u\n\n"
+        "IPageTable :\n"
+        "# hits: %u\n"
+        "# misses: %u\n\n"
+        "DPageTable :\n"
+        "# hits: %u\n"
+        "# misses: %u\n\n",
+        IHit_.Cache, IMiss_.Cache,
+        DHit_.Cache, DMiss_.Cache,
+        IHit_.TLB, IMiss_.TLB,
+        DHit_.TLB, DMiss_.TLB,
+        IHit_.PT, IMiss_.PT,
+        DHit_.PT, DMiss_.PT
+    );
+    fclose(report);
 }
 
 const uint32_t memory::getInstr() {
     ++cycle_;
     uint32_t ret = 0;
+    HitMiss(false, PC_ - PC0_);
     if (PC_ >= PC0_) ret = IDisk_[(PC_ - PC0_) / 4];
     PC_ += 4;
     return ret;

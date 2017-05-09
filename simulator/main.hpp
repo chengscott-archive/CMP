@@ -23,7 +23,7 @@
 
 memory mem;
 regfile reg, regt;
-FILE *snapshot, *report;
+FILE *snapshot;
 
 void dump_reg(const size_t);
 void R_execute(const uint32_t);

@@ -2,7 +2,6 @@
 
 int main(int argc, char** argv) {
     snapshot = fopen("snapshot.rpt", "w");
-    report = fopen("report.rpt", "w");
     mem.Init(argc, argv);
     mem.LoadInstr();
     uint32_t SP = mem.LoadData();
@@ -26,7 +25,7 @@ int main(int argc, char** argv) {
         dump_reg(cycle);
     }
     fclose(snapshot);
-    fclose(report);
+    mem.DumpReport();
     return 0;
 }
 

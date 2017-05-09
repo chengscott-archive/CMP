@@ -8,6 +8,7 @@ public:
     void Init(int, char**);
     void LoadInstr();
     uint32_t LoadData();
+    void DumpReport() const;
     const uint32_t& getPC() const { return PC_; }
     void setPC(const uint32_t& rhs) { PC_ = rhs; }
     const uint32_t getInstr();
@@ -46,4 +47,5 @@ private:
         bool valid = false, MRU = false;
     } ICache_[1024][1024], DCache_[1024][1024];
     void HitMiss(const bool, const uint32_t);
+    void CacheHitMiss(const uint32_t, Cache_entry*, const uint32_t, Info&, Info&);
 };
