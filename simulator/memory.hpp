@@ -19,32 +19,31 @@ public:
     void saveByte(const size_t, const uint32_t);
 
 private:
-    uint32_t PC_ = 0, PC0_ = 0;
-    size_t icount_ = 0, dcount_ = 0,
-        IMemorySize_, DMemorySize_, IPageSize_, DPageSize_,
-        ICacheSize_, IBlockSize_, IAssociativity_,
-        DCacheSize_, DBlockSize_, DAssociativity_;
-    uint32_t IDisk_[1024] = {}, DDisk_[1024] = {}, argDefault_[10] = {
-        64, 32, 8, 16, 16, 4, 4, 16, 4, 0
-    };
-    uint32_t ICacheHit_ = 0, ICacheMiss_ = 0, DCacheHit_ = 0, DCacheMiss_ = 0,
-        ITLBHit_ = 0, ITLBMiss_ = 0, DTLBHit_ = 0, DTLBMiss_ = 0,
-        IPageTableHit_ = 0, IPageTableMiss_ = 0,
-        DPageTableHit_ = 0, DPageTableMiss_ = 0;
-    struct TLB_entry {
-        uint32_t VPN = 0, PPN = 0, LRU = 0;
-        bool valid = false;
-    } ITLB[1024], DTLB[1024];
-    struct PTE {
-        uint32_t PPN = 0;
-        bool valid = false;
-    } IPageTable_[1024], DPageTable_[1024];
-    struct Cache_entry {
-        uint32_t tag = 0;
-        bool valid = false, MRU = false;
-    } ICache_[1024], DCache_[1024];
+    uint32_t cycle_ = 0, PC_ = 0, PC0_ = 0, IDisk_[1024] = {}, DDisk_[1024] = {},
+        sizeDefault_[10] = { 64, 32, 8, 16, 16, 4, 4, 16, 4, 1 };
+    struct SizeInfo {
+        size_t disk, memory, page, cache, cacheBlock,
+            PT, TLB, cacheOffset, cacheIndex, cacheTag;
+        uint32_t cacheNWay, cachePerWay;
+    } ISize_, DSize_;
+    struct Info {
+        uint32_t PT = 0, TLB = 0, Cache = 0;
+    } IHit_, IMiss_, DHit_, DMiss_;
     struct Memory_entry {
         uint32_t LRU = 0;
         bool valid = false;
     } IMemory_[1024], DMemory_[1024];
+    struct PTE {
+        uint32_t PPN = 0;
+        bool valid = false;
+    } IPageTable_[1024], DPageTable_[1024];
+    struct TLB_entry {
+        uint32_t VPN = 0, PPN = 0, LRU = 0;
+        bool valid = false;
+    } ITLB_[1024], DTLB_[1024];
+    struct Cache_entry {
+        uint32_t tag = 0;
+        bool valid = false, MRU = false;
+    } ICache_[1024][1024], DCache_[1024][1024];
+    void HitMiss(const bool, const uint32_t);
 };
