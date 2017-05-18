@@ -194,7 +194,8 @@ void I_execute(const uint32_t rhs) {
             } else if (opcode == 0x21) {
                 // lh
                 err |= (isOverflow(rs, Cext, res) | isOverflow(rs, Cext + 1, res));
-                reg.setReg(instr.rt, SignExt16(mem.loadHalfWord(res)));
+                uint32_t x = mem.loadHalfWord(res);
+                reg.setReg(instr.rt, SignExt16(x));
             } else if (opcode == 0x25) {
                 // lhu
                 err |= (isOverflow(rs, Cext, res) | isOverflow(rs, Cext + 1, res));
@@ -202,7 +203,8 @@ void I_execute(const uint32_t rhs) {
             } else if (opcode == 0x20) {
                 // lb
                 err |= isOverflow(rs, Cext, res);
-                reg.setReg(instr.rt, SignExt8(mem.loadByte(res)));
+                uint32_t x = mem.loadByte(res);
+                reg.setReg(instr.rt, SignExt8(x));
             } else if (opcode == 0x24) {
                 // lbu
                 err |= isOverflow(rs, Cext, res);

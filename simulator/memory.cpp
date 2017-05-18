@@ -254,7 +254,7 @@ const uint32_t memory::getInstr() {
     ++cycle_;
     uint32_t ret = 0;
     if (PC_ >= PC0_) {
-        HitMiss(false, PC_ - PC0_);
+        HitMiss(false, PC_);
         ret = IDisk_[(PC_ - PC0_) / 4];
     }
     PC_ += 4;
