@@ -12,19 +12,19 @@ public:
     const uint32_t& getPC() const { return PC_; }
     void setPC(const uint32_t& rhs) { PC_ = rhs; }
     const uint32_t getInstr();
-    const uint32_t loadWord(const size_t) const;
-    const uint32_t loadHalfWord(const size_t) const;
-    const uint32_t loadByte(const size_t) const;
+    const uint32_t loadWord(const size_t);
+    const uint32_t loadHalfWord(const size_t);
+    const uint32_t loadByte(const size_t);
     void saveWord(const size_t, const uint32_t);
     void saveHalfWord(const size_t, const uint32_t);
     void saveByte(const size_t, const uint32_t);
 
 private:
-    uint32_t cycle_ = 0, PC_ = 0, PC0_ = 0, IDisk_[1024] = {}, DDisk_[1024] = {},
+    uint32_t cycle_ = 0, PC_ = 0, PC0_ = 0, IDisk_[1024] = {}, DDisk_[1024] = {};
+    size_t icount_ = 0, dcount_ = 0,
         sizeDefault_[10] = { 64, 32, 8, 16, 16, 4, 4, 16, 4, 1 };
     struct SizeInfo {
-        size_t disk, memory, page, cache, cacheBlock,
-            PT, TLB, cacheOffset, cacheIndex, cacheTag;
+        size_t page, Memory, PT, TLB, cacheBlock, cacheIndex, cacheTag;
         uint32_t cacheNWay, cachePerWay;
     } ISize_, DSize_;
     struct Info {
@@ -47,5 +47,4 @@ private:
         bool valid = false, MRU = false;
     } ICache_[1024][1024], DCache_[1024][1024];
     void HitMiss(const bool, const uint32_t);
-    void CacheHitMiss(const uint32_t, Cache_entry*, const uint32_t, Info&, Info&);
 };
