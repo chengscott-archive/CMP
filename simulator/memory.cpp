@@ -181,7 +181,8 @@ void memory::HitMiss(const bool type, const uint32_t VA) {
     if (isCacheMiss) {
         // Cache Miss
         ++miss.Cache;
-        bool isAllValid = true, MRUfound = false;
+        MRU = tag;
+        bool isAllValid = true;
         // find not valid
         for (size_t i = 0; i < cacheNWay; ++i) {
             if (!cacheIndex[i].valid) {
@@ -190,22 +191,30 @@ void memory::HitMiss(const bool type, const uint32_t VA) {
                 isAllValid = false;
                 break;
             }
-            if (!cacheIndex[i].MRU && !MRUfound) MRU = i, MRUfound = true;
         }
         if (isAllValid) {
             // use MRU
-            cacheIndex[MRU].tag = tag;
-            cacheIndex[MRU].valid = cacheIndex[MRU].MRU = true;
+            for (size_t i = 0; i < cacheNWay; ++i) {
+                if (!cacheIndex[i].MRU) {
+                    cacheIndex[i].tag = tag;
+                    cacheIndex[i].valid = cacheIndex[i].MRU = true;
+                    MRU = i;
+                    break;
+                }
+            }
         }
     }
     // update Cache MRU
     bool isMRUfull = true;
-    for (size_t i = 0; i < cacheNWay && isMRUfull; ++i)
-        if (!cacheIndex[i].MRU)
+    for (size_t i = 0; i < cacheNWay; ++i) {
+        if (!cacheIndex[i].MRU) {
             isMRUfull = false;
+            break;
+        }
+    }
     if (isMRUfull) {
         for (size_t i = 0; i < cacheNWay; ++i)
-            if (i != MRU)
+            if (i != MRU || cacheNWay == 1)
                 cacheIndex[i].MRU = false;
     }
 }
