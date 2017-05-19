@@ -181,13 +181,14 @@ void memory::HitMiss(const bool type, const uint32_t VA) {
     if (isCacheMiss) {
         // Cache Miss
         ++miss.Cache;
-        MRU = tag;
+        MRU = 0;
         bool isAllValid = true;
         // find not valid
         for (size_t i = 0; i < cacheNWay; ++i) {
             if (!cacheIndex[i].valid) {
                 cacheIndex[i].tag = tag;
                 cacheIndex[i].valid = cacheIndex[i].MRU = true;
+                MRU = i;
                 isAllValid = false;
                 break;
             }
@@ -253,10 +254,8 @@ void memory::DumpReport() const {
 const uint32_t memory::getInstr() {
     ++cycle_;
     uint32_t ret = 0;
-    if (PC_ >= PC0_) {
-        HitMiss(false, PC_);
-        ret = IDisk_[(PC_ - PC0_) / 4];
-    }
+    HitMiss(false, PC_);
+    if (PC_ >= PC0_) ret = IDisk_[(PC_ - PC0_) / 4];
     PC_ += 4;
     return ret;
 }
