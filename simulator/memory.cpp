@@ -4,7 +4,7 @@ void memory::Init(int argc, char** argv) {
     std::stringstream ss;
     for (int i = 1; i < argc; ++i) ss << argv[i] << " ";
     for (int i = argc - 1; i < 10; ++i) ss << sizeDefault_[i] << " ";
-    size_t imemory, dmemory, icache, dcache, icacheOffset, dcacheOffset;
+    size_t imemory, dmemory, icache, dcache;
     ss >> imemory >> dmemory >> ISize_.page >> DSize_.page
         >> icache >> ISize_.cacheBlock >> ISize_.cacheNWay
         >> dcache >> DSize_.cacheBlock >> DSize_.cacheNWay;
@@ -18,13 +18,13 @@ void memory::Init(int argc, char** argv) {
     uint32_t lg_[2048] = {};
     for (int i = 1; i <= 10; ++i) lg_[1 << i] = i;
     ISize_.cachePerWay = (icache/ISize_.cacheBlock)/ISize_.cacheNWay;
-    icacheOffset = lg_[ISize_.cacheBlock];
     ISize_.cacheIndex = lg_[ISize_.cachePerWay];
-    ISize_.cacheTag = 32 - ISize_.cacheIndex - icacheOffset;
+    ISize_.cacheOffset = lg_[ISize_.cacheBlock];
+    ISize_.cacheTag = 32 - ISize_.cacheIndex - ISize_.cacheOffset;
     DSize_.cachePerWay = (dcache/DSize_.cacheBlock)/DSize_.cacheNWay;
-    dcacheOffset = lg_[DSize_.cacheBlock];
     DSize_.cacheIndex = lg_[DSize_.cachePerWay];
-    DSize_.cacheTag = 32 - DSize_.cacheIndex - dcacheOffset;
+    DSize_.cacheOffset = lg_[DSize_.cacheBlock];
+    DSize_.cacheTag = 32 - DSize_.cacheIndex - DSize_.cacheOffset;
 }
 
 void memory::LoadInstr() {
@@ -123,9 +123,8 @@ void memory::HitMiss(const bool type, const uint32_t VA) {
                 for (size_t i = 0; i < size.cachePerWay; ++i) {
                     for (size_t j = 0; j < size.cacheNWay; ++j) {
                         if (cache[i][j].valid) {
-                            uint32_t tPA = (cache[i][j].tag << (32 - size.cacheTag)) |
-                                (i << (32 - size.cacheTag - size.cacheIndex));
-                            if (tPA / size.page == PPN) {
+                            uint32_t cachePA = (cache[i][j].tag << size.cacheIndex | i) << size.cacheOffset;
+                            if (cachePA/size.page == PPN) {
                                 cache[i][j].valid = cache[i][j].MRU = false;
                             }
                         }
@@ -183,7 +182,6 @@ void memory::HitMiss(const bool type, const uint32_t VA) {
         ++miss.Cache;
         MRU = 0;
         bool isAllValid = true;
-        // find not valid
         for (size_t i = 0; i < cacheNWay; ++i) {
             if (!cacheIndex[i].valid) {
                 cacheIndex[i].tag = tag;
@@ -194,7 +192,6 @@ void memory::HitMiss(const bool type, const uint32_t VA) {
             }
         }
         if (isAllValid) {
-            // use MRU
             for (size_t i = 0; i < cacheNWay; ++i) {
                 if (!cacheIndex[i].MRU) {
                     cacheIndex[i].tag = tag;
@@ -205,7 +202,7 @@ void memory::HitMiss(const bool type, const uint32_t VA) {
             }
         }
     }
-    // update Cache MRU
+    // update Cache
     bool isMRUfull = true;
     for (size_t i = 0; i < cacheNWay; ++i) {
         if (!cacheIndex[i].MRU) {

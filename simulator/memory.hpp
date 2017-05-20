@@ -24,7 +24,7 @@ private:
     size_t icount_ = 0, dcount_ = 0,
         sizeDefault_[10] = { 64, 32, 8, 16, 16, 4, 4, 16, 4, 1 };
     struct SizeInfo {
-        size_t page, Memory, PT, TLB, cacheBlock, cacheIndex, cacheTag;
+        size_t page, Memory, PT, TLB, cacheBlock, cacheIndex, cacheTag, cacheOffset;
         uint32_t cacheNWay, cachePerWay;
     } ISize_, DSize_;
     struct Info {
