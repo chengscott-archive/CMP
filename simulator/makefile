@@ -1,5 +1,5 @@
-CC0 = g++ -std=c++11 -Ofast -Wall
-CC = g++ -std=c++11 -g -Wall
+CC = g++ -std=c++11 -Ofast -Wall
+CC0 = g++ -std=c++11 -g -Wall
 OBJ = main.o memory.o irfile.o
 archiTA = ../archiTA
 goldensim = $(archiTA)/simulator/CMP
